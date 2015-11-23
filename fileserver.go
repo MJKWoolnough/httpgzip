@@ -4,8 +4,10 @@
 package httpgzip
 
 import (
+	"mime"
 	"net/http"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -26,11 +28,13 @@ func FileServer(root http.FileSystem) http.Handler {
 // ServerHTTP implements the http.Handler interface
 func (f fileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, e := range strings.Split(r.Header.Get("Accept-Encoding"), ",") {
-		if strings.Trim(e) == "gzip" {
-			if _, err := f.root.Open(path.Clean(r.URL.Path + ".gz")); err != nil {
-				r.URL.Path += ".gz"
+		if strings.TrimSpace(e) == "gzip" {
+			if _, err := f.root.Open(path.Clean(r.URL.Path + ".gz")); err == nil {
 				w.Header().Set("Content-Encoding", "gzip")
-				f.h.ServeHTTP(w, r)
+				if ctype := mime.TypeByExtension(filepath.Ext(r.URL.Path)); ctype != "" {
+					w.Header().Set("Content-Type", ctype)
+				}
+				r.URL.Path += ".gz"
 			}
 			break
 		}
