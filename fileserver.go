@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -29,10 +30,12 @@ func FileServer(root http.FileSystem) http.Handler {
 func (f fileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, e := range strings.Split(r.Header.Get("Accept-Encoding"), ",") {
 		if strings.TrimSpace(e) == "gzip" {
-			if _, err := f.root.Open(path.Clean(r.URL.Path + ".gz")); err == nil {
+			if nf, err := f.root.Open(path.Clean(r.URL.Path + ".gz")); err == nil {
 				w.Header().Set("Content-Encoding", "gzip")
 				if ctype := mime.TypeByExtension(filepath.Ext(r.URL.Path)); ctype != "" {
 					w.Header().Set("Content-Type", ctype)
+					s, _ := nf.Stat()
+					w.Header().Set("Content-Length", strconv.FormatInt(s.Size(), 10))
 				}
 				r.URL.Path += ".gz"
 			}
