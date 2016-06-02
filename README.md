@@ -2,9 +2,9 @@
 --
     import "github.com/MJKWoolnough/httpgzip"
 
-Package httpgzip is a simple wrapper around http.FileServer that looks for
-a gzip compressed version of a file and serves that if the client requested
-gzip content
+Package httpgzip is a simple wrapper around http.FileServer that looks for a
+gzip compressed version of a file and serves that if the client requested gzip
+### content
 
 ## Usage
 
