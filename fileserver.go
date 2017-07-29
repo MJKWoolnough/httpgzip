@@ -31,14 +31,18 @@ func (f fileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, e := range strings.Split(r.Header.Get("Accept-Encoding"), ",") {
 		if strings.TrimSpace(e) == "gzip" {
 			p := path.Clean(r.URL.Path)
+			m := p
 			nf, err := f.root.Open(p + ".gz")
-			if err != nil && strings.HasSuffix(p, "/") {
-				p += "index.html"
-				nf, err = f.root.Open(p + ".gz")
+			if strings.HasSuffix(p, "/") {
+				m += "index.html"
+				if err != nil {
+					nf, err = f.root.Open(p + ".gz")
+					p += "index.html"
+				}
 			}
 			if err == nil {
 				w.Header().Set("Content-Encoding", "gzip")
-				if ctype := mime.TypeByExtension(filepath.Ext(r.URL.Path)); ctype != "" {
+				if ctype := mime.TypeByExtension(filepath.Ext(m)); ctype != "" {
 					w.Header().Set("Content-Type", ctype)
 					s, _ := nf.Stat()
 					w.Header().Set("Content-Length", strconv.FormatInt(s.Size(), 10))
