@@ -41,14 +41,15 @@ func (f fileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if err == nil {
-				w.Header().Set("Content-Encoding", "gzip")
 				if ctype := mime.TypeByExtension(filepath.Ext(m)); ctype != "" {
-					w.Header().Set("Content-Type", ctype)
 					s, err := nf.Stat()
-					if err == nil {
-						w.Header().Set("Content-Length", strconv.FormatInt(s.Size(), 10))
+					if err != nil {
+						break
 					}
+					w.Header().Set("Content-Type", ctype)
+					w.Header().Set("Content-Length", strconv.FormatInt(s.Size(), 10))
 				}
+				w.Header().Set("Content-Encoding", "gzip")
 				r.URL.Path = p + ".gz"
 			}
 			break
