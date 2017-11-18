@@ -35,7 +35,7 @@ func (e encodings) Len() int {
 }
 
 func (e encodings) Less(i, j int) bool {
-	return e[i].weight < e[j].weight
+	return e[j].weight < e[i].weight
 }
 
 func (e encodings) Swap(i, j int) {
