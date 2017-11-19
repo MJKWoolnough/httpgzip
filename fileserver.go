@@ -8,57 +8,23 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/MJKWoolnough/httpencoding"
 )
 
 const (
-	acceptEncoding   = "Accept-Encoding"
-	contentEncoding  = "Content-Encoding"
-	contentType      = "Content-Type"
-	contentLength    = "Content-Length"
-	anyEncoding      = "*"
-	gzipEncoding     = "gzip"
-	gzExt            = ".gz"
-	brEncoding       = "br"
-	brExt            = "br"
-	identityEncoding = "identity"
-	acceptSplit      = ","
-	partSplit        = ";"
-	weightPrefix     = "q="
-	indexPage        = "index.html"
+	contentEncoding = "Content-Encoding"
+	contentType     = "Content-Type"
+	contentLength   = "Content-Length"
+	indexPage       = "index.html"
 )
 
-type encodings []encoding
-
-func (e encodings) Len() int {
-	return len(e)
-}
-
-func (e encodings) Less(i, j int) bool {
-	if e[i].weight == e[j].weight {
-		if e[j].encoding == brEncoding { // prefer brotli
-			return true
-		}
-		if e[i].encoding == brEncoding {
-			return false
-		}
-		if e[j].encoding == gzipEncoding {
-			return true
-		}
-		return false
-	}
-	return e[j].weight < e[i].weight
-}
-
-func (e encodings) Swap(i, j int) {
-	e[i], e[j] = e[j], e[i]
-}
-
-type encoding struct {
-	encoding string
-	weight   uint16
+var encodings = map[string]string{
+	"gzip":   ".gz",
+	"x-gzip": ".gz",
+	"br":     ".br",
 }
 
 type fileServer struct {
@@ -69,63 +35,27 @@ type fileServer struct {
 // FileServer creates a wrapper around http.FileServer using the given
 // http.FileSystem
 func FileServer(root http.FileSystem) http.Handler {
-	return fileServer{
+	return &fileServer{
 		root,
 		http.FileServer(root),
 	}
 }
 
-func (f fileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	acceptHeader := r.Header.Get(acceptEncoding)
-	accepts := make(encodings, 0, strings.Count(acceptHeader, acceptSplit)+1)
-Loop:
-	for _, accept := range strings.Split(acceptHeader, acceptSplit) {
-		parts := strings.Split(strings.TrimSpace(accept), partSplit)
-		var (
-			weight float64 = 1
-			err    error
-		)
-		for _, part := range parts[1:] {
-			if strings.HasPrefix(strings.TrimSpace(part), weightPrefix) {
-				weight, err = strconv.ParseFloat(part[len(weightPrefix):], 32)
-				if err != nil || weight < 0 || weight >= 2 { // return an malformed header response?
-					continue Loop
-				}
-				break
-			}
-		}
-		accepts = append(accepts, encoding{
-			encoding: strings.ToLower(strings.TrimSpace(parts[0])),
-			weight:   uint16(weight * 1000),
-		})
-	}
-	sort.Sort(accepts)
-	allowIdentity := true
-	for _, accept := range accepts {
-		switch accept.encoding {
-		case brEncoding:
-			if f.serveFile(w, r, brExt, brEncoding) {
-				return
-			}
-		case gzipEncoding:
-			if f.serveFile(w, r, gzExt, gzipEncoding) {
-				return
-			}
-		case identityEncoding:
-			allowIdentity = accept.weight != 0
-			break
-		case anyEncoding:
-			allowIdentity = accept.weight != 0
-		}
-	}
-	if allowIdentity {
-		f.h.ServeHTTP(w, r)
-	} else {
-		w.WriteHeader(http.StatusNotAcceptable)
+func (f *fileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !httpencoding.HandleEncoding(w, r, f) {
+		httpencoding.InvalidEncoding(w)
 	}
 }
 
-func (f fileServer) serveFile(w http.ResponseWriter, r *http.Request, ext, encoding string) bool {
+func (f *fileServer) Handle(w http.ResponseWriter, r *http.Request, encoding string) bool {
+	if encoding == "" {
+		f.h.ServeHTTP(w, r)
+		return true
+	}
+	ext, ok := encodings[encoding]
+	if !ok {
+		return false
+	}
 	p := path.Clean(r.URL.Path)
 	m := p
 	nf, err := f.root.Open(p + ext)
