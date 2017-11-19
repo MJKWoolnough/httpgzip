@@ -21,6 +21,8 @@ const (
 	anyEncoding      = "*"
 	gzipEncoding     = "gzip"
 	gzExt            = ".gz"
+	brEncoding       = "br"
+	brExt            = "br"
 	identityEncoding = "identity"
 	acceptSplit      = ","
 	partSplit        = ";"
@@ -35,6 +37,18 @@ func (e encodings) Len() int {
 }
 
 func (e encodings) Less(i, j int) bool {
+	if e[i].weight == e[j].weight {
+		if e[j].encoding == brEncoding { // prefer brotli
+			return true
+		}
+		if e[i].encoding == brEncoding {
+			return false
+		}
+		if e[j].encoding == gzipEncoding {
+			return true
+		}
+		return false
+	}
 	return e[j].weight < e[i].weight
 }
 
@@ -89,6 +103,10 @@ Loop:
 	allowIdentity := true
 	for _, accept := range accepts {
 		switch accept.encoding {
+		case brEncoding:
+			if f.serveFile(w, r, brExt, brEncoding) {
+				return
+			}
 		case gzipEncoding:
 			if f.serveFile(w, r, gzExt, gzipEncoding) {
 				return
