@@ -58,7 +58,7 @@ func (e encodings) Swap(i, j int) {
 
 type encoding struct {
 	encoding string
-	weight   float32
+	weight   uint16
 }
 
 type fileServer struct {
@@ -88,7 +88,7 @@ Loop:
 		for _, part := range parts[1:] {
 			if strings.HasPrefix(strings.TrimSpace(part), weightPrefix) {
 				weight, err = strconv.ParseFloat(part[len(weightPrefix):], 32)
-				if err != nil || weight < 0 || weight > 1 { // return an malformed header response?
+				if err != nil || weight < 0 || weight >= 2 { // return an malformed header response?
 					continue Loop
 				}
 				break
@@ -96,7 +96,7 @@ Loop:
 		}
 		accepts = append(accepts, encoding{
 			encoding: strings.ToLower(strings.TrimSpace(parts[0])),
-			weight:   float32(weight),
+			weight:   uint16(weight * 1000),
 		})
 	}
 	sort.Sort(accepts)
