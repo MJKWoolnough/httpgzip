@@ -42,21 +42,32 @@ func FileServer(root http.FileSystem) http.Handler {
 }
 
 func (f *fileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !httpencoding.HandleEncoding(w, r, f) {
+	fsh := fileserverHandler{
+		fileServer: f,
+		w:          w,
+		r:          r,
+	}
+	if !httpencoding.HandleEncoding(r, &fsh) {
 		httpencoding.InvalidEncoding(w)
 	}
 }
 
-func (f *fileServer) Handle(w http.ResponseWriter, r *http.Request, encoding string) bool {
+type fileserverHandler struct {
+	*fileServer
+	w http.ResponseWriter
+	r *http.Request
+}
+
+func (f *fileserverHandler) Handle(encoding string) bool {
 	if encoding == "" {
-		f.h.ServeHTTP(w, r)
+		f.h.ServeHTTP(f.w, f.r)
 		return true
 	}
 	ext, ok := encodings[encoding]
 	if !ok {
 		return false
 	}
-	p := path.Clean(r.URL.Path)
+	p := path.Clean(f.r.URL.Path)
 	m := p
 	nf, err := f.root.Open(p + ext)
 	if strings.HasSuffix(p, "/") {
@@ -70,11 +81,11 @@ func (f *fileServer) Handle(w http.ResponseWriter, r *http.Request, encoding str
 		if ctype := mime.TypeByExtension(filepath.Ext(m)); ctype != "" {
 			s, err := nf.Stat()
 			if err == nil {
-				w.Header().Set(contentType, ctype)
-				w.Header().Set(contentLength, strconv.FormatInt(s.Size(), 10))
-				w.Header().Set(contentEncoding, encoding)
-				r.URL.Path = p + ext
-				f.h.ServeHTTP(w, r)
+				f.w.Header().Set(contentType, ctype)
+				f.w.Header().Set(contentLength, strconv.FormatInt(s.Size(), 10))
+				f.w.Header().Set(contentEncoding, encoding)
+				f.r.URL.Path = p + ext
+				f.h.ServeHTTP(f.w, f.r)
 				return true
 			}
 		}
