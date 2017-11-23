@@ -60,6 +60,7 @@ type fileserverHandler struct {
 
 func (f *fileserverHandler) Handle(encoding string) bool {
 	if encoding == "" {
+		httpencoding.ClearEncoding(f.r)
 		f.h.ServeHTTP(f.w, f.r)
 		return true
 	}
@@ -85,6 +86,7 @@ func (f *fileserverHandler) Handle(encoding string) bool {
 				f.w.Header().Set(contentLength, strconv.FormatInt(s.Size(), 10))
 				f.w.Header().Set(contentEncoding, encoding)
 				f.r.URL.Path = p + ext
+				httpencoding.ClearEncoding(f.r)
 				f.h.ServeHTTP(f.w, f.r)
 				return true
 			}
