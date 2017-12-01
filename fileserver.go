@@ -22,9 +22,10 @@ const (
 )
 
 var encodings = map[string]string{
-	"gzip":   ".gz",
-	"x-gzip": ".gz",
-	"br":     ".br",
+	"gzip":    ".gz",
+	"x-gzip":  ".gz",
+	"br":      ".br",
+	"deflate": ".fl",
 }
 
 type fileServer struct {
