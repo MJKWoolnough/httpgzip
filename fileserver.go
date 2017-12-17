@@ -1,6 +1,6 @@
 // Package httpgzip is a simple wrapper around http.FileServer that looks for
-// a gzip compressed version of a file and serves that if the client requested
-// gzip content
+// a compressed version of a file and serves that if the client requested
+// compressed content
 package httpgzip
 
 import (
@@ -28,6 +28,18 @@ var encodings = map[string]string{
 	"deflate": ".fl",
 }
 
+type overlay []http.FileSystem
+
+func (o overlay) Open(name string) (f http.File, err error) {
+	for _, fs := range o {
+		f, err = fs.Open(name)
+		if err == nil {
+			return f, nil
+		}
+	}
+	return nil, err
+}
+
 type fileServer struct {
 	root http.FileSystem
 	h    http.Handler
@@ -35,7 +47,13 @@ type fileServer struct {
 
 // FileServer creates a wrapper around http.FileServer using the given
 // http.FileSystem
-func FileServer(root http.FileSystem) http.Handler {
+func FileServer(root, roots ...http.FileSystem) http.Handler {
+	if len(roots) > 0 {
+		overlays := make(overlay, 1, len(roots)+1)
+		overlays[0] = root
+		overlays = append(overlays, roots)
+		root = overlays
+	}
 	return &fileServer{
 		root,
 		http.FileServer(root),
