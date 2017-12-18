@@ -47,11 +47,11 @@ type fileServer struct {
 
 // FileServer creates a wrapper around http.FileServer using the given
 // http.FileSystem
-func FileServer(root, roots ...http.FileSystem) http.Handler {
+func FileServer(root http.FileSystem, roots ...http.FileSystem) http.Handler {
 	if len(roots) > 0 {
 		overlays := make(overlay, 1, len(roots)+1)
 		overlays[0] = root
-		overlays = append(overlays, roots)
+		overlays = append(overlays, roots...)
 		root = overlays
 	}
 	return &fileServer{
