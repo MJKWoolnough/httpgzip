@@ -47,6 +47,9 @@ type fileServer struct {
 
 // FileServer creates a wrapper around http.FileServer using the given
 // http.FileSystem
+//
+// Additional http.FileSystem's can be specified and will be turned into a
+// Handler that checks each in order, stopping at the first
 func FileServer(root http.FileSystem, roots ...http.FileSystem) http.Handler {
 	if len(roots) > 0 {
 		overlays := make(overlay, 1, len(roots)+1)
