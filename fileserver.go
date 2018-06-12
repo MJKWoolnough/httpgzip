@@ -1,7 +1,7 @@
 // Package httpgzip is a simple wrapper around http.FileServer that looks for
 // a compressed version of a file and serves that if the client requested
 // compressed content
-package httpgzip
+package httpgzip // import "vimagination.zapto.org/httpgzip"
 
 import (
 	"mime"
@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/MJKWoolnough/httpencoding"
+	"vimagination.zapto.org/httpencoding"
 )
 
 const (
