@@ -92,12 +92,15 @@ func (f *fileserverHandler) Handle(encoding string) bool {
 		return false
 	}
 	p := path.Clean(f.r.URL.Path)
+	if strings.HasSuffix(f.r.URL.Path, "/") {
+		p += "/"
+	}
 	m := p
 	nf, err := f.root.Open(p + ext)
 	if strings.HasSuffix(p, "/") {
 		m += indexPage
 		if err != nil {
-			nf, err = f.root.Open(p + ext)
+			nf, err = f.root.Open(m + ext)
 			p += indexPage
 		}
 	}
