@@ -4,6 +4,7 @@
 package httpgzip // import "vimagination.zapto.org/httpgzip"
 
 import (
+	"io"
 	"mime"
 	"net/http"
 	"path"
@@ -101,7 +102,18 @@ func (f *fileserverHandler) Handle(encoding string) bool {
 		}
 	}
 	if err == nil {
-		if ctype := mime.TypeByExtension(filepath.Ext(m)); ctype != "" {
+		ctype := mime.TypeByExtension(filepath.Ext(m))
+		if ctype == "" {
+			df, err := f.root.Open(m)
+			if err == nil {
+				var buf [512]byte
+				n, _ := io.ReadFull(df, buf[:])
+				ctype = http.DetectContentType(buf[:n])
+				nf.Seek(0, io.SeekStart)
+				df.Close()
+			}
+		}
+		if ctype != "" {
 			s, err := nf.Stat()
 			if err == nil {
 				f.w.Header().Set(contentType, ctype)
