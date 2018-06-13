@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"vimagination.zapto.org/httpencoding"
 )
@@ -81,6 +82,12 @@ type fileserverHandler struct {
 	r *http.Request
 }
 
+var detectPool = sync.Pool{
+	New: func() interface{} {
+		return make([]byte, 512)
+	},
+}
+
 func (f *fileserverHandler) Handle(encoding string) bool {
 	if encoding == "" {
 		httpencoding.ClearEncoding(f.r)
@@ -109,9 +116,10 @@ func (f *fileserverHandler) Handle(encoding string) bool {
 		if ctype == "" {
 			df, err := f.root.Open(m)
 			if err == nil {
-				var buf [512]byte
-				n, _ := io.ReadFull(df, buf[:])
+				buf := detectPool.Get().([]byte)
+				n, _ := io.ReadFull(df, buf)
 				ctype = http.DetectContentType(buf[:n])
+				detectPool.Put(buf)
 				nf.Seek(0, io.SeekStart)
 				df.Close()
 			}
