@@ -23,7 +23,7 @@ const (
 	indexPage       = "index.html"
 )
 
-var encodings = map[string]string{
+var encodings = map[httpencoding.Encoding]string{
 	"gzip":    ".gz",
 	"x-gzip":  ".gz",
 	"br":      ".br",
@@ -94,7 +94,7 @@ var detectPool = sync.Pool{
 	},
 }
 
-func (f *fileserverHandler) Handle(encoding string) bool {
+func (f *fileserverHandler) Handle(encoding httpencoding.Encoding) bool {
 	if encoding == "" {
 		httpencoding.ClearEncoding(f.r)
 		f.h.ServeHTTP(f.w, f.r)
@@ -135,7 +135,7 @@ func (f *fileserverHandler) Handle(encoding string) bool {
 			if err == nil {
 				f.w.Header().Set(contentType, ctype)
 				f.w.Header().Set(contentLength, strconv.FormatInt(s.Size(), 10))
-				f.w.Header().Set(contentEncoding, encoding)
+				f.w.Header().Set(contentEncoding, string(encoding))
 				f.r.URL.Path = p + ext
 				httpencoding.ClearEncoding(f.r)
 				f.h.ServeHTTP(f.w, f.r)
