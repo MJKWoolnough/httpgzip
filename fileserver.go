@@ -28,6 +28,7 @@ var encodings = map[httpencoding.Encoding]string{
 	"x-gzip":  ".gz",
 	"br":      ".br",
 	"deflate": ".fl",
+	"zstd":    ".zst",
 }
 
 type overlay []http.FileSystem
@@ -53,18 +54,18 @@ type fileServer struct {
 // Additional http.FileSystem's can be specified and will be turned into a
 // Handler that checks each in order, stopping at the first
 func FileServer(root http.FileSystem, roots ...http.FileSystem) http.Handler {
-	return FileServerWithHandler(root, http.FileServer(root), roots...)
-}
-
-// FileServerWithHandler acts like FileServer, but allows a custom Handler
-// instead of the http.FileSystem wrapped http.FileServer
-func FileServerWithHandler(root http.FileSystem, handler http.Handler, roots ...http.FileSystem) http.Handler {
 	if len(roots) > 0 {
 		overlays := make(overlay, 1, len(roots)+1)
 		overlays[0] = root
 		overlays = append(overlays, roots...)
 		root = overlays
 	}
+	return FileServerWithHandler(root, http.FileServer(root))
+}
+
+// FileServerWithHandler acts like FileServer, but allows a custom Handler
+// instead of the http.FileSystem wrapped http.FileServer
+func FileServerWithHandler(root http.FileSystem, handler http.Handler) http.Handler {
 	return &fileServer{
 		root,
 		handler,
