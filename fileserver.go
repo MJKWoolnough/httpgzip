@@ -91,7 +91,7 @@ type fileserverHandler struct {
 
 var detectPool = sync.Pool{
 	New: func() interface{} {
-		return make([]byte, 512)
+		return &[512]byte{}
 	},
 }
 
@@ -123,8 +123,8 @@ func (f *fileserverHandler) Handle(encoding httpencoding.Encoding) bool {
 		if ctype == "" {
 			df, err := f.root.Open(m)
 			if err == nil {
-				buf := detectPool.Get().([]byte)
-				n, _ := io.ReadFull(df, buf)
+				buf := detectPool.Get().(*[512]byte)
+				n, _ := io.ReadFull(df, buf[:])
 				ctype = http.DetectContentType(buf[:n])
 				detectPool.Put(buf)
 				nf.Seek(0, io.SeekStart)
