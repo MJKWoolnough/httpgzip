@@ -22,7 +22,7 @@ that checks each in order, stopping at the first
 #### func  FileServerWithHandler
 
 ```go
-func FileServerWithHandler(root http.FileSystem, handler http.Handler, roots ...http.FileSystem) http.Handler
+func FileServerWithHandler(root http.FileSystem, handler http.Handler) http.Handler
 ```
 FileServerWithHandler acts like FileServer, but allows a custom Handler instead
 of the http.FileSystem wrapped http.FileServer
