@@ -1,6 +1,6 @@
 // Package httpgzip is a simple wrapper around http.FileServer that looks for
 // a compressed version of a file and serves that if the client requested
-// compressed content
+// compressed content.
 package httpgzip // import "vimagination.zapto.org/httpgzip"
 
 import (
@@ -40,6 +40,7 @@ func (o overlay) Open(name string) (f http.File, err error) {
 			return f, nil
 		}
 	}
+
 	return nil, err
 }
 
@@ -52,7 +53,7 @@ type fileServer struct {
 // http.FileSystem
 //
 // Additional http.FileSystem's can be specified and will be turned into a
-// Handler that checks each in order, stopping at the first
+// Handler that checks each in order, stopping at the first.
 func FileServer(root http.FileSystem, roots ...http.FileSystem) http.Handler {
 	if len(roots) > 0 {
 		overlays := make(overlay, 1, len(roots)+1)
@@ -60,11 +61,12 @@ func FileServer(root http.FileSystem, roots ...http.FileSystem) http.Handler {
 		overlays = append(overlays, roots...)
 		root = overlays
 	}
+
 	return FileServerWithHandler(root, http.FileServer(root))
 }
 
 // FileServerWithHandler acts like FileServer, but allows a custom Handler
-// instead of the http.FileSystem wrapped http.FileServer
+// instead of the http.FileSystem wrapped http.FileServer.
 func FileServerWithHandler(root http.FileSystem, handler http.Handler) http.Handler {
 	return &fileServer{
 		root,
@@ -78,6 +80,7 @@ func (f *fileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w:          w,
 		r:          r,
 	}
+
 	if !httpencoding.HandleEncoding(r, &fsh) {
 		httpencoding.InvalidEncoding(w)
 	}
@@ -99,50 +102,61 @@ func (f *fileserverHandler) Handle(encoding httpencoding.Encoding) bool {
 	if encoding == "" {
 		httpencoding.ClearEncoding(f.r)
 		f.h.ServeHTTP(f.w, f.r)
+
 		return true
 	}
+
 	ext, ok := encodings[encoding]
 	if !ok {
 		return false
 	}
+
 	p := path.Clean(f.r.URL.Path)
+
 	if strings.HasSuffix(f.r.URL.Path, "/") {
 		p += "/"
 	}
+
 	m := p
 	nf, err := f.root.Open(p + ext)
+
 	if strings.HasSuffix(p, "/") {
 		m += indexPage
+
 		if err != nil {
 			nf, err = f.root.Open(m + ext)
 			p += indexPage
 		}
 	}
+
 	if err == nil {
 		ctype := mime.TypeByExtension(filepath.Ext(m))
 		if ctype == "" {
-			df, err := f.root.Open(m)
-			if err == nil {
+			if df, err := f.root.Open(m); err == nil {
 				buf := detectPool.Get().(*[512]byte)
 				n, _ := io.ReadFull(df, buf[:])
 				ctype = http.DetectContentType(buf[:n])
+
 				detectPool.Put(buf)
 				nf.Seek(0, io.SeekStart)
 				df.Close()
 			}
 		}
+
 		if ctype != "" {
-			s, err := nf.Stat()
-			if err == nil {
+			if s, err := nf.Stat(); err == nil {
 				f.w.Header().Set(contentType, ctype)
 				f.w.Header().Set(contentLength, strconv.FormatInt(s.Size(), 10))
 				f.w.Header().Set(contentEncoding, string(encoding))
 				f.r.URL.Path = p + ext
+
 				httpencoding.ClearEncoding(f.r)
 				f.h.ServeHTTP(f.w, f.r)
+
 				return true
 			}
 		}
 	}
+
 	return false
 }
