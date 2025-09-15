@@ -99,7 +99,7 @@ var detectPool = sync.Pool{
 }
 
 func (f *fileserverHandler) Handle(encoding httpencoding.Encoding) bool {
-	if encoding == "" {
+	if encoding == "" || httpencoding.IsWildcard(encoding) && !httpencoding.IsDisallowedInWildcard(encoding, "") {
 		httpencoding.ClearEncoding(f.r)
 		f.h.ServeHTTP(f.w, f.r)
 
