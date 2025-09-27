@@ -151,7 +151,7 @@ func (f *fileserverHandler) Handle(encoding httpencoding.Encoding) bool {
 				f.r.URL.Path = p + ext
 
 				httpencoding.ClearEncoding(f.r)
-				f.h.ServeHTTP(f.w, f.r)
+				f.h.ServeHTTP(&wrapResponseWriter{ResponseWriter: f.w, size: s.Size()}, f.r)
 
 				return true
 			}
@@ -159,4 +159,17 @@ func (f *fileserverHandler) Handle(encoding httpencoding.Encoding) bool {
 	}
 
 	return false
+}
+
+type wrapResponseWriter struct {
+	http.ResponseWriter
+	size int64
+}
+
+func (w *wrapResponseWriter) WriteHeader(code int) {
+	if w.Header().Get("Content-Length") == "" {
+		w.Header().Set("Content-Length", strconv.FormatInt(w.size, 10))
+	}
+
+	w.ResponseWriter.WriteHeader(code)
 }
