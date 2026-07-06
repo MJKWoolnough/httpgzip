@@ -93,7 +93,7 @@ type fileserverHandler struct {
 }
 
 var detectPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &[512]byte{}
 	},
 }
